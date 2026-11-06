@@ -15,3 +15,10 @@ protobuf==5.29.3
 # Tests
 pytest==8.3.5
 httpx==0.28.1
+
+# Fichier Csv / Excel
+numpy==1.26.4
+pandas==2.2.3
+
+#python
+python-multipart==0.0.6

@@ -6,13 +6,21 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from time import perf_counter
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
 
-from app.inference import load_pipeline, predict_sentiment
-from app.schemas import ReviewIn, SentimentOut
+from app.inference import (
+    calculate_good_predictions,
+    load_pipeline,
+    load_sentiment_file,
+    predict_sentiment,
+    predict_sentiment_for_file,
+)
+from app.schemas import Conversion, ReviewIn, SentimentOut
+
+from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 MODEL_NAME = os.getenv("MODEL_NAME", "cmarkea/distilcamembert-base-sentiment")
@@ -132,7 +140,21 @@ def predict(review: ReviewIn, request: Request) -> SentimentOut:
     if model is None:
         raise HTTPException(status_code=503, detail="Le modèle n'est pas chargé")
 
-    result = predict_sentiment(model, review.text)
+    result = predict_sentiment(model, review.text, review.conversion)
     response = SentimentOut(**result)
     request.state.log_sentiment = response.sentiment
     return response
+
+
+@app.post("/predict/batch")
+async def mesure(
+    file: UploadFile = File(...),
+    conversion: Conversion = Form("Conversion 1"),
+):
+    """calcul du nombre et du taux de prédictions correctes pour un fichier d'avis annotés."""
+    dict_sentiments = await load_sentiment_file(file)
+    model = state.get("classifier")
+    if model is None:
+        raise HTTPException(status_code=503, detail="Le modèle n'est pas chargé")
+    dict_predict = predict_sentiment_for_file(model, dict_sentiments, conversion)
+    return calculate_good_predictions(dict_sentiments, dict_predict)

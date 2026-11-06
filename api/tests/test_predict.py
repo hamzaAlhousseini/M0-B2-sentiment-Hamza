@@ -43,6 +43,34 @@ def test_predict_valid_review(client, prediction_logs):
     assert float(record["message"].rsplit("duree_ms=", 1)[1]) >= 0
 
 
+def test_predict_accepts_conversion(client):
+    response = client.post(
+        "/predict",
+        json={"text": "Chambre propre.", "conversion": "Conversion 2"},
+    )
+
+    assert response.status_code == 200
+
+
+def test_predict_batch_accepts_conversion(client, monkeypatch):
+    async def load_file(_file):
+        return [{"id": "1", "texte": "Chambre propre.", "sentiment_attendu": "positif"}]
+
+    def predict_file(_classifier, _reviews):
+        return [{"id": "1", "texte": "Chambre propre.", "sentiment_pred": "positif"}]
+
+    monkeypatch.setattr(main, "load_sentiment_file", load_file)
+    monkeypatch.setattr(main, "predict_sentiment_for_file", predict_file)
+
+    response = client.post(
+        "/predict/batch",
+        data={"conversion": "Conversion 2"},
+        files={"file": ("reviews.csv", "ignored", "text/csv")},
+    )
+
+    assert response.status_code == 200
+
+
 @pytest.mark.parametrize(
     "text",
     ["", " \t\n ", "x" * 2001],

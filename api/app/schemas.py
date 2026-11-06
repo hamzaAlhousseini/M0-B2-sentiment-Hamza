@@ -4,6 +4,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
+Conversion = Literal["Conversion 1", "Conversion 2"]
+
 
 class ReviewIn(BaseModel):
     """Un avis client à analyser : non vide (espaces ignorés), 2 000 caractères maximum."""
@@ -13,7 +15,10 @@ class ReviewIn(BaseModel):
         StringConstraints(strip_whitespace=True, min_length=1, max_length=2000),
         Field(description="Texte de l'avis client", examples=["Chambre propre, personnel adorable."]),
     ]
-
+    conversion:  Literal["Conversion 1", "Conversion 2"] = Field(
+        description="Choix de la conversion des 5 étoiles du modèle vers les 3 classes métier",
+        examples=["Conversion 1", "Conversion 2"],  
+    )
 
 class SentimentOut(BaseModel):
     """Réponse de /predict."""
@@ -22,3 +27,4 @@ class SentimentOut(BaseModel):
     # Scores bruts du modèle, pour la traçabilité : {"1 star": 0.02, ..., "5 stars": 0.71}
     scores_etoiles: dict[str, float]
     latence_ms: float
+    
