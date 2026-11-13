@@ -5,6 +5,7 @@ import os
 import streamlit as st
 from api_client import get, post
 import httpx
+from visualization import display_misclassified_reviews,display_metrics
 
 # Dans docker compose, l'API est joignable par le NOM de son service (cf. .env)
 API_URL = os.getenv("API_URL", "http://localhost:8000")
@@ -79,9 +80,17 @@ else:
                     },
                     timeout=30,
                 )
+                response.raise_for_status()
                 result = response.json()
-                display_predictions(result)
-                st.json(result)
+                display_metrics(
+                    cm=result.get("cm"),
+                    accuracy=result.get("accuracy"),
+                    report=result.get("report")
+                )
+                display_misclassified_reviews(
+                    dict_sentiments=result.get("dict_sentiments"),
+                    dict_predict=result.get("dict_predict")
+                )
             except httpx.HTTPStatusError as e:
                 st.error(f"Erreur HTTP : {e.response.status_code} — {e.response.text}")
             except httpx.RequestError as e:

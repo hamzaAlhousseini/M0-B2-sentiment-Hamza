@@ -17,10 +17,9 @@ from app.inference import (
     load_sentiment_file,
     predict_sentiment,
     predict_sentiment_for_file,
+    analyze_sentiment_file
 )
 from app.schemas import Conversion, ReviewIn, SentimentOut
-
-from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 MODEL_NAME = os.getenv("MODEL_NAME", "cmarkea/distilcamembert-base-sentiment")
@@ -37,6 +36,7 @@ state: dict = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 4.2 Configuration du logger avec Loguru
+    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     sink_id = logger.add(
         LOG_PATH,
         level="INFO",
@@ -157,4 +157,4 @@ async def mesure(
     if model is None:
         raise HTTPException(status_code=503, detail="Le modèle n'est pas chargé")
     dict_predict = predict_sentiment_for_file(model, dict_sentiments, conversion)
-    return calculate_good_predictions(dict_sentiments, dict_predict)
+    return analyze_sentiment_file(model, dict_sentiments, dict_predict)

@@ -8,6 +8,11 @@ from time import perf_counter
 from fastapi import File, HTTPException, UploadFile
 from transformers import pipeline
 
+from app.metrics import (
+    create_confusion_matrix,
+    create_classification_report,
+    calculate_accuracy
+)
 
 def load_pipeline(model_name: str):
     """Charge le pipeline de classification (téléchargé au 1er lancement, puis en cache).
@@ -128,5 +133,26 @@ def calculate_good_predictions(dict_sentiments: list[dict], dict_predict: list[d
     return {
         "bonnes_predictions": good_predictions,
         "total_predictions": total,
+        "taux_reussite": good_predictions / total if total else 0.0
+    }
+
+def analyze_sentiment_file(classifier, dict_sentiments: list[dict], dict_predict: list[dict]):
+    cm = create_confusion_matrix(dict_sentiments, dict_predict)
+    report = create_classification_report(dict_sentiments, dict_predict)
+    accuracy = float(calculate_accuracy(cm))
+    total = min(len(dict_sentiments), len(dict_predict))
+    good_predictions = sum(
+        expected["sentiment_attendu"] == predicted["sentiment_pred"]
+        for expected, predicted in zip(dict_sentiments, dict_predict)
+    )
+
+    return {
+        "cm": cm.to_dict(orient="index"),
+        "report": report.to_dict(orient="index"),
+        "accuracy": round(accuracy, 2),
+        "bonnes_predictions": good_predictions,
+        "total_predictions": total,
         "taux_reussite": good_predictions / total if total else 0.0,
+        "dict_sentiments": dict_sentiments,
+        "dict_predict": dict_predict,
     }

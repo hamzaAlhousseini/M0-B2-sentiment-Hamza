@@ -56,7 +56,7 @@ def test_predict_batch_accepts_conversion(client, monkeypatch):
     async def load_file(_file):
         return [{"id": "1", "texte": "Chambre propre.", "sentiment_attendu": "positif"}]
 
-    def predict_file(_classifier, _reviews):
+    def predict_file(_classifier, _reviews, _conversion):
         return [{"id": "1", "texte": "Chambre propre.", "sentiment_pred": "positif"}]
 
     monkeypatch.setattr(main, "load_sentiment_file", load_file)
@@ -69,6 +69,20 @@ def test_predict_batch_accepts_conversion(client, monkeypatch):
     )
 
     assert response.status_code == 200
+    data = response.json()
+    assert data["cm"]["positif"]["positif"] == 1
+    assert data["accuracy"] == 1.0
+    assert data["report"]["positif"]["precision"] == 1.0
+    assert data["dict_sentiments"] == [
+        {"id": "1", "texte": "Chambre propre.", "sentiment_attendu": "positif"}
+    ]
+    assert data["dict_predict"] == [
+        {
+            "id": "1",
+            "texte": "Chambre propre.",
+            "sentiment_pred": "positif",
+        }
+    ]
 
 
 @pytest.mark.parametrize(
